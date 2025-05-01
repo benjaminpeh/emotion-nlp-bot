@@ -6,13 +6,13 @@ import altair as alt
 import random
 import openai
 
-# --- Page config ---
+# --- Streamlit Page Setup ---
 st.set_page_config(page_title="MindScape: AI Mental Wellness Companion", layout="centered")
 
-# --- Set OpenAI API key from secrets ---
+# --- Load OpenAI Key from Streamlit Secrets ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# --- Title & intro ---
+# --- App Title and Description ---
 st.title("🧠 MindScape: Your AI-Powered Mental Wellness Companion")
 st.write("Check in with yourself, journal safely, and receive AI-guided support.")
 
@@ -32,11 +32,11 @@ if st.button("Give me a journaling prompt"):
     ]
     st.info(random.choice(prompts))
 
-# --- Mood log session state ---
+# --- Session state to track mood history ---
 if "mood_log" not in st.session_state:
     st.session_state["mood_log"] = []
 
-# --- Mood Check and GPT Response ---
+# --- Mood Analysis + AI Coach ---
 if st.button("Check My Mood"):
     if user_input.strip() == "":
         st.warning("Please enter something before submitting.")
@@ -54,14 +54,14 @@ if st.button("Check My Mood"):
 
         st.success(f"**Detected Mood:** {mood}")
 
-        # Save entry
+        # Log entry
         st.session_state["mood_log"].append({
             "timestamp": datetime.datetime.now(),
             "mood": mood.split()[1],
             "polarity": polarity
         })
 
-        # Step 2: GPT Coach Response
+        # Step 2: GPT Journaling Coach
         with st.spinner("AI Coach is responding..."):
             try:
                 response = openai.ChatCompletion.create(
@@ -75,14 +75,16 @@ if st.button("Check My Mood"):
                             "role": "user",
                             "content": f"I feel like this: {user_input}"
                         }
-                    ]
+                    ],
+                    timeout=15
                 )
                 reply = response["choices"][0]["message"]["content"]
                 st.info(f"🧠 **AI Coach says:**\n\n{reply}")
             except Exception as e:
-                st.error("Error fetching response from OpenAI. Please try again later.")
+                st.error("❌ GPT failed to respond.")
+                st.code(str(e))
 
-# --- Mood Trend Chart ---
+# --- Mood Tracker Chart ---
 if st.session_state["mood_log"]:
     st.subheader("📊 Mood Tracker Over Time")
     df = pd.DataFrame(st.session_state["mood_log"])
@@ -94,10 +96,13 @@ if st.session_state["mood_log"]:
     ).properties(height=300)
     st.altair_chart(chart, use_container_width=True)
 
-# --- Resources ---
+# --- Support Resources ---
 st.subheader("📚 Feeling overwhelmed?")
 st.markdown("- [SUTD Mental Wellness](https://www.sutd.edu.sg/Campus-Life/Wellness-Matters)")
 st.markdown("- Singapore Mental Health Helpline: 6389 2222")
 st.markdown("- Samaritans of Singapore (SOS): 1767")
 
+# --- Footer ---
+st.markdown("---")
 st.caption("🛡️ All data is stored locally in your browser. Nothing is saved to the cloud.")
+st.markdown("**Created by: Benjamin Peh Ren-Jie**")
