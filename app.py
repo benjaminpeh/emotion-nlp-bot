@@ -3,8 +3,17 @@ from textblob import TextBlob
 import datetime
 import pandas as pd
 import altair as alt
+import random
 
 st.set_page_config(page_title="MindScape: Mental Wellness Companion", layout="centered")
+
+# --- Theme Toggle ---
+theme = st.sidebar.selectbox("🌙 Choose Theme", ["Light", "Dark"])
+if theme == "Dark":
+    st.markdown(
+        """<style>body { background-color: #121212; color: white; }</style>""",
+        unsafe_allow_html=True,
+    )
 
 # --- Title ---
 st.title("🧠 MindScape: Your Mental Wellness Companion")
@@ -14,11 +23,23 @@ st.write("A simple, private space to reflect and receive support.")
 st.subheader("💬 How are you feeling today?")
 user_input = st.text_area("Write anything on your mind...")
 
-# Initialize mood log
+# Journaling prompts
+st.markdown("✍️ *Need inspiration?*")
+if st.button("Give me a journaling prompt"):
+    prompts = [
+        "Describe a moment you felt truly at peace.",
+        "Write a letter to your future self.",
+        "What would you tell a friend who feels how you do?",
+        "What's something small you're grateful for today?",
+        "Imagine your ideal calm space — what does it look like?"
+    ]
+    st.info(random.choice(prompts))
+
+# Mood log storage
 if "mood_log" not in st.session_state:
     st.session_state["mood_log"] = []
 
-# --- Analyze Sentiment ---
+# --- Sentiment Analysis ---
 if st.button("Check My Mood"):
     if user_input.strip() == "":
         st.warning("Please enter something before submitting.")
@@ -28,13 +49,13 @@ if st.button("Check My Mood"):
 
         if polarity > 0.3:
             mood = "😊 Positive"
-            suggestion = "Keep it up! Try journaling or share your happiness with someone."
+            suggestion = "Great! Keep it up. Maybe journal or take a walk outside."
         elif polarity < -0.3:
             mood = "😞 Negative"
-            suggestion = "You seem down. Consider taking deep breaths or reaching out to a friend."
+            suggestion = "It's okay to feel this way. Consider breathing exercises or calling a friend."
         else:
             mood = "😐 Neutral"
-            suggestion = "Stay balanced. Maybe a short walk or break will help."
+            suggestion = "Try to engage with something relaxing like music or stretching."
 
         st.success(f"**Detected Mood:** {mood}")
         st.info(f"**Suggestion:** {suggestion}")
@@ -45,21 +66,22 @@ if st.button("Check My Mood"):
             "polarity": polarity
         })
 
-# --- Mood History Chart ---
+# --- Mood Trend Chart ---
 if st.session_state["mood_log"]:
-    st.subheader("📊 Mood Tracker")
+    st.subheader("📊 Mood Tracker Over Time")
     df = pd.DataFrame(st.session_state["mood_log"])
     chart = alt.Chart(df).mark_line(point=True).encode(
         x='timestamp:T',
         y='polarity:Q',
+        color=alt.value("#1f77b4"),
         tooltip=['timestamp:T', 'mood', 'polarity']
     ).properties(height=300)
     st.altair_chart(chart, use_container_width=True)
 
 # --- Resources ---
 st.subheader("📚 Feeling overwhelmed?")
-st.write("- [SUTD Mental Wellness](https://www.sutd.edu.sg/Campus-Life/Wellness-Matters)")
-st.write("- Singapore Mental Health Helpline: 6389 2222")
-st.write("- Samaritans of Singapore (SOS): 1767")
+st.markdown("- [SUTD Mental Wellness](https://www.sutd.edu.sg/Campus-Life/Wellness-Matters)")
+st.markdown("- Singapore Mental Health Helpline: 6389 2222")
+st.markdown("- Samaritans of Singapore (SOS): 1767")
 
 st.caption("🛡️ All data is stored locally in your browser. Nothing is saved to the cloud.")
