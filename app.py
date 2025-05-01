@@ -9,7 +9,7 @@ import openai
 # --- Streamlit Page Setup ---
 st.set_page_config(page_title="MindScape: AI Mental Wellness Companion", layout="centered")
 
-# --- Load OpenAI Key from Streamlit Secrets ---
+# --- Load OpenAI API key from Streamlit Secrets ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # --- App Title and Description ---
@@ -36,7 +36,7 @@ if st.button("Give me a journaling prompt"):
 if "mood_log" not in st.session_state:
     st.session_state["mood_log"] = []
 
-# --- Mood Analysis + AI Coach ---
+# --- Mood Analysis + GPT Journaling Coach ---
 if st.button("Check My Mood"):
     if user_input.strip() == "":
         st.warning("Please enter something before submitting.")
@@ -81,7 +81,7 @@ if st.button("Check My Mood"):
                 reply = response["choices"][0]["message"]["content"]
                 st.info(f"🧠 **AI Coach says:**\n\n{reply}")
             except Exception as e:
-                st.error("❌ GPT failed to respond.")
+                st.error("❌ GPT failed to respond. Here’s the error:")
                 st.code(str(e))
 
 # --- Mood Tracker Chart ---
