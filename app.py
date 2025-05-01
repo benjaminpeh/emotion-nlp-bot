@@ -4,26 +4,23 @@ import datetime
 import pandas as pd
 import altair as alt
 import random
+import openai
 
-st.set_page_config(page_title="MindScape: Mental Wellness Companion", layout="centered")
+# --- Page config ---
+st.set_page_config(page_title="MindScape: AI Mental Wellness Companion", layout="centered")
 
-# --- Theme Toggle ---
-theme = st.sidebar.selectbox("🌙 Choose Theme", ["Light", "Dark"])
-if theme == "Dark":
-    st.markdown(
-        """<style>body { background-color: #121212; color: white; }</style>""",
-        unsafe_allow_html=True,
-    )
+# --- Set OpenAI API key from secrets ---
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# --- Title ---
-st.title("🧠 MindScape: Your Mental Wellness Companion")
-st.write("A simple, private space to reflect and receive support.")
+# --- Title & intro ---
+st.title("🧠 MindScape: Your AI-Powered Mental Wellness Companion")
+st.write("Check in with yourself, journal safely, and receive AI-guided support.")
 
 # --- Mood Input ---
 st.subheader("💬 How are you feeling today?")
 user_input = st.text_area("Write anything on your mind...")
 
-# Journaling prompts
+# --- Journaling Prompts ---
 st.markdown("✍️ *Need inspiration?*")
 if st.button("Give me a journaling prompt"):
     prompts = [
@@ -35,45 +32,64 @@ if st.button("Give me a journaling prompt"):
     ]
     st.info(random.choice(prompts))
 
-# Mood log storage
+# --- Mood log session state ---
 if "mood_log" not in st.session_state:
     st.session_state["mood_log"] = []
 
-# --- Sentiment Analysis ---
+# --- Mood Check and GPT Response ---
 if st.button("Check My Mood"):
     if user_input.strip() == "":
         st.warning("Please enter something before submitting.")
     else:
+        # Step 1: Sentiment Analysis
         blob = TextBlob(user_input)
         polarity = blob.sentiment.polarity
 
         if polarity > 0.3:
             mood = "😊 Positive"
-            suggestion = "Great! Keep it up. Maybe journal or take a walk outside."
         elif polarity < -0.3:
             mood = "😞 Negative"
-            suggestion = "It's okay to feel this way. Consider breathing exercises or calling a friend."
         else:
             mood = "😐 Neutral"
-            suggestion = "Try to engage with something relaxing like music or stretching."
 
         st.success(f"**Detected Mood:** {mood}")
-        st.info(f"**Suggestion:** {suggestion}")
 
-        st.session_state.mood_log.append({
+        # Save entry
+        st.session_state["mood_log"].append({
             "timestamp": datetime.datetime.now(),
             "mood": mood.split()[1],
             "polarity": polarity
         })
 
+        # Step 2: GPT Coach Response
+        with st.spinner("AI Coach is responding..."):
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a calm and empathetic journaling coach for stressed university students. Help them reflect and feel better."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"I feel like this: {user_input}"
+                        }
+                    ]
+                )
+                reply = response["choices"][0]["message"]["content"]
+                st.info(f"🧠 **AI Coach says:**\n\n{reply}")
+            except Exception as e:
+                st.error("Error fetching response from OpenAI. Please try again later.")
+
 # --- Mood Trend Chart ---
 if st.session_state["mood_log"]:
     st.subheader("📊 Mood Tracker Over Time")
     df = pd.DataFrame(st.session_state["mood_log"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
     chart = alt.Chart(df).mark_line(point=True).encode(
         x='timestamp:T',
         y='polarity:Q',
-        color=alt.value("#1f77b4"),
         tooltip=['timestamp:T', 'mood', 'polarity']
     ).properties(height=300)
     st.altair_chart(chart, use_container_width=True)
