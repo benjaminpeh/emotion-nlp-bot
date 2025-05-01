@@ -1,4 +1,3 @@
-app.py
 import streamlit as st
 from textblob import TextBlob
 import datetime
